@@ -1,7 +1,7 @@
-#include "server/server.h"
+
 
 int main() {
-    constexpr int RTMP_PORT = 1935;
+    constexpr int RTMP_PORT = 1934;
     
     return 0;
 }
