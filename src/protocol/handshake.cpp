@@ -91,7 +91,7 @@ namespace protocol {
 
     void Handshake::advance_after_send() {
         if (state_ == State::SEND_S0S1S2) {
-            state_ == State::WAIT_C2;
+            state_ = State::WAIT_C2;
             recv_buf_idx_ = 0;
             utils::logger::info("[HANDSHAKE] Sent S0+S1+S2, now waiting for C2...");
         }
