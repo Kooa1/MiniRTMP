@@ -40,6 +40,9 @@ namespace server {
             utils::logger::error("listen failed, error=%d", errno);
             return false;
         }
+
+        utils::logger::info("Listening on 0.0.0.0:%d", port_);
+        return true;
     }
 
     void Acceptor::accept_once() {
