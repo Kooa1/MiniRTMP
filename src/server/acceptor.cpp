@@ -8,8 +8,8 @@
 
 namespace server {
     Acceptor::Acceptor(int port, NewConnectionCallback fn)
-        : port_(port),
-          new_connection_callback_(std::move(fn)) {
+        : port_(port)
+          , new_connection_callback_(std::move(fn)) {
     }
 
     Acceptor::~Acceptor() = default;
@@ -20,7 +20,6 @@ namespace server {
             utils::logger::error("socket failed, error=%d", errno);
             return false;
         }
-
         listen_sock_ = net::Socket(fd);
 
         int opt = 1;
@@ -36,7 +35,7 @@ namespace server {
             return false;
         }
 
-        if (::listen(listen_sock_.get(), SOMAXCONN < 0)) {
+        if (::listen(listen_sock_.get(), SOMAXCONN) < 0) {
             utils::logger::error("listen failed, error=%d", errno);
             return false;
         }
@@ -49,12 +48,18 @@ namespace server {
         sockaddr_in client_addr{};
         socklen_t socklen = sizeof(client_addr);
 
-        int client_fd = ::accept(listen_sock_.get(), reinterpret_cast<sockaddr *>(&client_addr), &socklen);
+        int client_fd = ::accept(listen_sock_.get(),
+                                 reinterpret_cast<sockaddr *>(&client_addr),
+                                 &socklen);
         if (client_fd < 0) {
-            if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
-                utils::logger::error("accept failed, error=%d", errno);
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 return;
             }
+            if (errno == EINTR) {
+                return;
+            }
+            utils::logger::error("accept failed, error=%d", errno);
+            return;
         }
 
         net::Socket client_socket(client_fd);
