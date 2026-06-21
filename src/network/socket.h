@@ -28,18 +28,15 @@ namespace net {
 
         Socket &operator=(Socket &&other) noexcept;
 
-        int fd() const { return fd_; };
-
         bool valid() const { return fd_ >= 0; }
 
-        int get() { return fd_; }
+        int get() const { return fd_; }
 
         int release();
 
         void close();
 
         static std::string addr_str(const sockaddr_in &addr);
-
 
     private:
         int fd_;
