@@ -32,9 +32,14 @@ namespace net {
 
         bool valid() const { return fd_ >= 0; }
 
+        int get() { return fd_; }
+
+        int release();
+
         void close();
 
         static std::string addr_str(const sockaddr_in &addr);
+
 
     private:
         int fd_;

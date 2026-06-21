@@ -28,6 +28,12 @@ namespace net {
         return *this;
     }
 
+    int Socket::release() {
+        const int fd = fd_;
+        fd_ = -1;
+        return fd;
+    }
+
     void Socket::close() {
         if (fd_ > 0) {
             ::close(fd_);
