@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "../network/socket.h"
+#include "../protocol/handshake.h"
 
 namespace server {
     class Session {

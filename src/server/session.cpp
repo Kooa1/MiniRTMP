@@ -4,6 +4,7 @@
 
 #include "session.h"
 
+#include "../protocol/handshake.h"
 #include "../utils/logger.h"
 
 server::Session::Session(net::Socket sock, std::string peer_addr)
@@ -17,28 +18,43 @@ server::Session::~Session() {
 }
 
 void server::Session::run() {
-    char buf[4096];
+    protocol::Handshake handshake;
+    char send_buf[4096]; // 存放 S0+S1+S2
+    char recv_buf[4096]; // 存放 recv 到的原始数据
 
-    while (true) {
-        // recv 返回：
-        //   > 0 ：实际读到的字节数
-        //   = 0 ：对端关闭连接（EOF）
-        //   < 0 ：出错
-        ssize_t n = ::recv(sock_.get(), buf, sizeof(buf), 0);
+    while (handshake.state() != protocol::Handshake::State::DONE &&
+           handshake.state() != protocol::Handshake::State::FAILED) {
+        if (handshake.state() == protocol::Handshake::State::SEND_S0S1S2) {
+            int len = handshake.get_send_data(send_buf, sizeof(send_buf));
+            ::send(sock_.get(), send_buf, len, 0);
+            handshake.advance_after_send();
+            continue;
+        }
 
+        utils::logger::info("[DEBUG] State=%d, about to recv...",
+                            static_cast<int>(handshake.state()));
+
+        // ---- 接收数据 ----
+        int n = ::recv(sock_.get(), recv_buf, sizeof(recv_buf), 0);
         if (n > 0) {
-            utils::logger::info("[DATA] Received %zd bytes from %s", n, peer_addr_.c_str());
-            print_hex(buf, static_cast<int>(n));
+            // 把收到的数据喂给握手状态机
+            int consumed = handshake.input(recv_buf, n);
+            (void) consumed;
         } else if (n == 0) {
+            utils::logger::error("[HANDSHAKE] Connection closed by peer during handshake");
             break;
         } else {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                continue;
-            }
-            utils::logger::error("recv() failed from %s, errno=%d", peer_addr_.c_str(), errno);
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
             break;
         }
     }
+
+    if (handshake.state() == protocol::Handshake::State::DONE) {
+        utils::logger::info("========================================");
+        utils::logger::info("  ✓ RTMP Handshake Success!");
+        utils::logger::info("========================================");
+    }
+
     sock_.close();
 }
 
